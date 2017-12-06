@@ -1,0 +1,10 @@
+{
+  "url": ".*sagepub.*\\.com",
+  "headless": true,
+  "elements": {
+    "abstract_link": {
+      "selector": "//a[contains(@class,'abstract-link')]",
+      "attribute": "href"
+    }
+  }
+}
