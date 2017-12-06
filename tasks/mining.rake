@@ -1,7 +1,7 @@
 require 'json'
 require 'csv'
 
-namespace :scraping do
+namespace :scrape do
   SAGE_URL = 'http://journals.sagepub.com'
 
   desc 'bpcq'
