@@ -4,9 +4,9 @@ This tool utilizes `quickscrape` to scrape abstracts from Business and Professio
 
 ## PREREQUISITES
 
-Ruby 2.3.1
-Node.js
-NPM
+- Ruby 2.3.1
+- Node.js
+- NPM
 
 ## INSTALLATION
 
