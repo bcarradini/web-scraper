@@ -1,7 +1,7 @@
 require 'json'
 require 'csv'
 
-namespace :mining do
+namespace :scraping do
   SAGE_URL = 'http://journals.sagepub.com'
 
   desc 'bpcq'
@@ -82,7 +82,7 @@ namespace :mining do
       abstract = json['abstract']['value'][0]
 
       if abstract && !authors.empty?
-        puts "  Abstract: #{abstract}"
+        puts "  Abstract available"
         csv << [title, authors, abstract]
       elsif authors.empty?
         puts "  No author(s) available"
