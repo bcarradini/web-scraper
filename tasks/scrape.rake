@@ -15,6 +15,7 @@ namespace :scrape do
     ABSTRACTS_LOGS_DIR = 'logs/bpcq/abstracts'
     ABSTRACTS_OUTPUT_DIR = 'output/bpcq/abstracts'
 
+    # Cleanup old directories and (re-)create
     system "rm -rf #{LINKS_OUTPUT_DIR}/"
     system "rm -rf #{ABSTRACTS_OUTPUT_DIR}/"
     system "rm #{LINKS_LOGS_DIR}/*"
@@ -48,7 +49,7 @@ namespace :scrape do
       issue = 1
     end
 
-    # Cycle over abstract links scraped for this volume
+    # Cycle over abstract links scraped from the TOCs
     Dir.glob("#{LINKS_OUTPUT_DIR}/http_journals.*") do |links|
       puts "\nProcessing scraped data at #{links}"
       file = File.read links+'/results.json'
@@ -66,24 +67,25 @@ namespace :scrape do
     end
 
     # Prepare CSV file for final output 
-    final_csv = File.join(OUTPUT_DIR, "final_output_#{Time.now.to_i}.csv")
+    final_csv = File.join(OUTPUT_DIR, "final_output_#{Time.now.strftime("%Y-%m-%d-%H:%M-UTC")}.csv")
     csv = CSV.open(final_csv, "wb")
-    csv << ['Title', 'Author', 'Abstract']
+    csv << ['URL', 'Title', 'Author', 'Abstract']
 
-    # Cycle over scraped abstracts
-    Dir.glob("#{ABSTRACTS_OUTPUT_DIR}/http_journals.*") do |results|
-      puts "\nProcessing scraped data at #{results}"
-      file = File.read results+'/results.json'
+    # Cycle over abstracts scraped from the abstract links
+    Dir.glob("#{ABSTRACTS_OUTPUT_DIR}/http_journals.*") do |abstract|
+      puts "\nProcessing scraped data at #{abstract}"
+      file = File.read abstract+'/results.json'
       json = JSON.parse(file)
 
-      # Retrieve and process abstract text
+      # Retrieve and process abstract data
+      url = abstract[/http.*/].gsub(/http_/,'http://').gsub(/_/, '/')
       title = json['title']['value'][0]
       authors = json['author']['value'].join(', ')
-      abstract = json['abstract']['value'][0]
+      text = json['abstract']['value'][0]
 
-      if abstract && !authors.empty?
+      if text && !authors.empty?
         puts "  Abstract available"
-        csv << [title, authors, abstract]
+        csv << [url, title, authors, text]
       elsif authors.empty?
         puts "  No author(s) available"
       else
