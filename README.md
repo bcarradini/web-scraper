@@ -1,6 +1,6 @@
-# bpcq-abstracts-scraper
+# data-mining-scraper
 
-This tool utilizes `quickscrape` to scrape abstracts from Business and Professional Communication Quarterly (BPCQ).
+This tool utilizes `quickscrape` to scrape data from various web sites; e.g., abstracts from Business and Professional Communication Quarterly (BPCQ).
 
 ## PREREQUISITES
 

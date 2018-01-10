@@ -9,3 +9,6 @@
 
 # Ignore journal-scrapers (a 3rd-party library of scraper examples)
 /journal-scrapers
+
+# Ignore output/split/ directory
+/output/split/*
