@@ -15,6 +15,16 @@ namespace :scrape do
 
 
   #############
+  # Misc
+  #############
+
+  desc 'Check environment'
+  task :env do
+    puts ENV['APP_ENV']
+  end
+
+
+  #############
   # BPCQ
   #############
 

@@ -1,5 +1,5 @@
 # require 'rake/testtask'
-# require_relative 'environment'
+require_relative 'environment'
 
 Dir['./tasks/**/*.rake'].each do |file|
   load file
