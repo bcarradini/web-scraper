@@ -12,3 +12,4 @@
 
 # Ignore output/split/ directory
 /output/split/*
+/output/http*

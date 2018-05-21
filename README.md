@@ -35,7 +35,7 @@ bundle install
 To scrape title, author, and abstract from BPCQ Volume 57 Issue 3 through Volume 80 Issue 3:
 
 ```
-rake mining:bpcq
+rake scrape:bpcq
 ```
 
 See logs/bpcq/ for debug output.

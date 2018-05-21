@@ -4,6 +4,20 @@ require 'csv'
 namespace :scrape do
   SAGE_URL = 'http://journals.sagepub.com'
 
+  def timestamp
+    Time.now.strftime("%Y-%m-%d-%H:%M-UTC")
+  end
+
+  def datestamp
+    Time.now.strftime("%Y-%m-%d-UTC")
+  end
+
+
+
+  #############
+  # BPCQ
+  #############
+
   desc 'bpcq'
   task :bpcq do
     LOGS_DIR = 'logs/bpcq'
@@ -67,7 +81,7 @@ namespace :scrape do
     end
 
     # Prepare CSV file for final output 
-    final_csv = File.join(OUTPUT_DIR, "final_output_#{Time.now.strftime("%Y-%m-%d-%H:%M-UTC")}.csv")
+    final_csv = File.join(OUTPUT_DIR, "final_output_#{timestamp}.csv")
     csv = CSV.open(final_csv, "wb")
     csv << ['URL', 'Title', 'Author', 'Abstract']
 
