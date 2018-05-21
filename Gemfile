@@ -5,6 +5,7 @@ gem 'dotenv'
 gem 'rake'
 gem 'pry'
 gem 'json'
+gem 'httparty'
 gem 'dotenv'
 
 group :development do

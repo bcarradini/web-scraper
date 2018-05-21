@@ -1,0 +1,94 @@
+{
+  "url": ".*kickstarter.*\\.com",
+  "headless": true,
+  "elements": {
+    "title": {
+      "selector": "//meta[@property='og:title']",
+      "attribute": "content"
+    },
+    "sub_title": {
+      "selector": "//meta[@property='og:description']",
+      "attribute": "content"
+    },
+    "creator": {
+      "selector": "//a[contains(@data-modal-class,'modal_project_by')]",
+      "attribute": "text"
+    },
+    "first_time_creator": {
+      "selector": "//a[contains(@data-modal-class,'modal_project_by')]/parent::span/following-sibling::span",
+      "attribute": "text"
+    },
+    "project_image": {
+      "selector": "//div[contains(@class,'project-image')]/img",
+      "attribute": "src"
+    },
+    "project_video": {
+      "selector": "//div[contains(@class,'project-image')]/div[contains(@class,'video-player')]",
+      "attribute": "data-video-url"
+    },
+    "content_images": {
+      "selector": "//div[contains(@class,'description-container')]//img[not(parent::div[@class='video-player'])]",
+      "attribute": "src"
+    },
+    "content_videos": {
+      "selector": "//div[contains(@class,'description-container')]//div[@class='video-player']",
+      "attribute": "data-video-url"
+    },
+    "content_links": {
+      "selector": "//div[contains(@class,'description-container')]//a",
+      "attribute": "href"
+    },
+    "content_headers": {
+      "selector": "//div[contains(@class,'description-container')]//h1|h2|h3|h4|h5",
+      "attribute": "text"
+    },
+    "content_full_description": {
+      "selector": "//div[contains(@class,'js-full-description')]",
+      "attribute": "text"
+    },
+    "content_risks": {
+      "selector": "//div[contains(@class,'js-risks')]",
+      "attribute": "text"
+    },
+    "pledge_amount": {
+      "selector": "//h2[@class='pledge__amount']/span[@class='money']",
+      "attribute": "text"
+    },
+    "pledge_title": {
+      "selector": "//h3[@class='pledge__title']",
+      "attribute": "text"
+    },
+    "pledge_description": {
+      "selector": "//div[contains(@class,'pledge__reward-description')]",
+      "attribute": "text"
+    },
+    "pledge_extra_info": {
+      "selector": "//div[@class='pledge__extra-info']",
+      "attribute": "text"
+    },
+    "goal_amount": {
+      "selector": "//div[@id='pledged']",
+      "attribute": "data-goal"
+    },
+    "pledged_amount_unfunded": {
+      "selector": "//div[@id='pledged']",
+      "attribute": "data-pledged"
+    },
+    "pledged_amount_funded": {
+      "selector": "//div[@class='NS_campaigns__spotlight_stats']//span[@class='money']",
+      "attribute": "text"
+    },
+    "backers_unfunded": {
+      "selector": "//div[@id='backers_count']",
+      "attribute": "text"
+    },
+    "backers_funded": {
+      "selector": "//div[@class='NS_campaigns__spotlight_stats']//b",
+      "attribute": "text"
+    },
+    "end_date": {
+      "selector": "//div[contains(@class,'ksr_page_timer')]",
+      "attribute": "data-end_time"
+    }
+  }
+}

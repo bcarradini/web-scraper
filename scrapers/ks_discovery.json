@@ -1,0 +1,10 @@
+{
+  "url": ".*kickstarter.*\\.com",
+  "headless": true,
+  "elements": {
+    "project_url": {
+      "selector": "//section[contains(@id,'projects')]//a[contains(@class,'img-placeholder')]",
+      "attribute": "href"
+    }
+  }
+}
