@@ -40,7 +40,6 @@
     "commander": "~2.7.1",
     "moment": "~2.10.2",
     "thresher": "^0.1.11",
-    "tiny-jsonrpc": "^2.0.1",
     "which": "~1.0.5",
     "winston": "~1.0.0"
   },
