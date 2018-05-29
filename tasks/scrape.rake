@@ -148,11 +148,11 @@ namespace :scrape do
     DISCOVERY_OUTPUT_DIR = "#{DISCOVERY_DIR}/output"
 
     # Cleanup old directories and (re-)create
-    system "rm -rf #{DISCOVERY_DIR}"
-    system "mkdir ks/"
-    system "mkdir #{DISCOVERY_DIR}"
-    system "mkdir #{DISCOVERY_LOGS_DIR}"
-    system "mkdir #{DISCOVERY_OUTPUT_DIR}"
+    `rm -rf "#{DISCOVERY_DIR}"`
+    `mkdir ks/`
+    `mkdir "#{DISCOVERY_DIR}"`
+    `mkdir "#{DISCOVERY_LOGS_DIR}"`
+    `mkdir "#{DISCOVERY_OUTPUT_DIR}"`
 
     # Setup AWS S3 bucket if running in production
     if ENV['APP_ENV'] == 'production'
@@ -347,10 +347,10 @@ namespace :scrape do
           next if (args[:category] && args[:category].to_i != category)
 
           base_url = kickstarter_base_url(region, category, 'newest')
-          system "mkdir #{DISCOVERY_LOGS_DIR}/#{region}"
-          system "mkdir #{DISCOVERY_LOGS_DIR}/#{region}/#{category}"
-          system "mkdir #{DISCOVERY_OUTPUT_DIR}/#{region}"
-          system "mkdir #{DISCOVERY_OUTPUT_DIR}/#{region}/#{category}"
+          `mkdir "#{DISCOVERY_LOGS_DIR}"/"#{region}"`
+          `mkdir "#{DISCOVERY_LOGS_DIR}"/"#{region}"/"#{category}"`
+          `mkdir "#{DISCOVERY_OUTPUT_DIR}"/"#{region}"`
+          `mkdir "#{DISCOVERY_OUTPUT_DIR}"/"#{region}"/"#{category}"`
 
           # Setup base URL and cycle through up to 200 discovery pages
           for page in 1..200
