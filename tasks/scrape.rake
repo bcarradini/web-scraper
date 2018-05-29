@@ -2,6 +2,7 @@ require 'json'
 require 'csv'
 require 'httparty'
 require 'timeout'
+require 'aws-sdk-s3'
 
 namespace :scrape do
   SAGE_URL = 'http://journals.sagepub.com'
@@ -139,16 +140,24 @@ namespace :scrape do
   task :ks_discovery do
     start_time = Time.now
 
-    # This script expects 'logs/ks/' and 'output/ks/' to already exist
     DISCOVERY_SCRAPER = File.absolute_path('scrapers/ks_discovery.json')
-    DISCOVERY_LOGS_DIR = 'logs/ks/discovery'
-    DISCOVERY_OUTPUT_DIR = 'output/ks/discovery'
+    DISCOVERY_DIR = 'ks/discovery'
+    DISCOVERY_LOGS_DIR = "#{DISCOVERY_DIR}/logs/"
+    DISCOVERY_OUTPUT_DIR = "#{DISCOVERY_DIR}/output/"
 
     # Cleanup old directories and (re-)create
-    system "rm -rf #{DISCOVERY_OUTPUT_DIR}/"
-    system "rm -rf #{DISCOVERY_LOGS_DIR}"
-    system "mkdir #{DISCOVERY_OUTPUT_DIR}/"
-    system "mkdir #{DISCOVERY_LOGS_DIR}/"
+    system "rm -rf #{DISCOVERY_DIR}"
+    system "mkdir #{DISCOVERY_DIR}"
+    system "mkdir #{DISCOVERY_OUTPUT_DIR}"
+    system "mkdir #{DISCOVERY_LOGS_DIR}"
+
+    # Setup AWS S3 bucket if running in production
+    if ENV['APP_ENV'] == 'production'
+      s3 = Aws::S3::Resource.new(region: ENV.fetch('AWS_REGION'))
+      s3_bucket = s3.bucket(ENV.fetch('AWS_S3_BUCKET_NAME'))
+      s3_bucket.objects(prefix: DISCOVERY_LOGS_DIR).batch_delete!
+      s3_bucket.objects(prefix: DISCOVERY_OUTPUT_DIR).batch_delete!
+    end
 
     # Kickstarter regions:
     #
@@ -283,12 +292,14 @@ namespace :scrape do
 
         # Get a new unit of work from the work queue
         url = work_queue.pop
-        puts "C: URL: #{url}"
+        # puts "C: URL: #{url}"
 
         # Pass url to the new thread so it can use it as a parameter
         threads[found_index] = Thread.new(url) do
           # Scrape that shiz
-          log = url.gsub('://','_').gsub(/[\/&]/,'_')+"_"+datestamp
+          base = url.gsub('://','_').gsub(/[\/]/,'_')
+          log = DISCOVERY_LOGS_DIR+base+"_"+datestamp
+          res = DISCOVERY_OUTPUT_DIR+base+'/results.json'
           # Sometimes Quickscrape stalls; try up to 2 times, then move on
           for i in 1..2
             begin
@@ -296,14 +307,21 @@ namespace :scrape do
                 system "quickscrape --url '#{url}' "+
                                    "--scraper #{DISCOVERY_SCRAPER} "+
                                    "--output #{DISCOVERY_OUTPUT_DIR} "+
-                                   "--loglevel error > #{DISCOVERY_LOGS_DIR}/#{log}"
+                                   "--loglevel error > '#{log}'"
               }
             rescue Timeout::Error => e
               next
             end
             next unless result
           end
-          puts "C: FAILED: #{url}" unless result
+          # Process result
+          if !result
+            puts "C: FAILED: #{url}"
+            s3_bucket.object(log).put(log) if s3_bucket
+          elsif s3_bucket
+            s3_bucket.object(log).put('success')
+            s3_bucket.object(res).upload_file(res)
+          end
           # Mark thread as finished and tell consumer to check the thread array
           Thread.current["finished"] = true
           threads.synchronize do
@@ -330,11 +348,15 @@ namespace :scrape do
               response = HTTParty.get(url)
               break if response.parsed_response.match /\<div.*id=\"projects_list\">[[:space:]]*<\/div>/
             end
+            if (page % 100) == 1
+              puts "P: page: #{page}"
+            end
             # Queue URL for scraping, then tell consumer to check the thread array
             work_queue.push(url)
             threads.synchronize do
               threads_available.signal
             end
+            break # TODO: Remove after S3 integration
           end
         end
       end
@@ -365,17 +387,26 @@ namespace :scrape do
   task :ks_projects do
     start_time = Time.now
 
-    # This script expects 'logs/ks/' and 'output/ks/' to already exist
-    DISCOVERY_OUTPUT_DIR = 'output/ks/discovery'
+    # This script expects 'ks/logs/' and 'ks/output/' to already exist
+    DISCOVERY_OUTPUT_DIR = 'ks/discovery/output'
     PROJECTS_SCRAPER = File.absolute_path('scrapers/ks_project.json')
-    PROJECTS_LOGS_DIR = 'logs/ks/projects'
-    PROJECTS_OUTPUT_DIR = 'output/ks/projects'
+    PROJECTS_DIR = 'ks/projects'
+    PROJECTS_LOGS_DIR = "#{PROJECTS_DIR}/logs/"
+    PROJECTS_OUTPUT_DIR = "#{PROJECTS_DIR}/output/"
 
     # Cleanup old directories and (re-)create
-    system "rm -rf #{PROJECTS_OUTPUT_DIR}/"
-    system "rm #{PROJECTS_LOGS_DIR}/*"
-    system "mkdir #{PROJECTS_OUTPUT_DIR}/"
-    system "mkdir #{PROJECTS_LOGS_DIR}/"
+    system "rm -rf #{PROJECTS_DIR}"
+    system "mkdir #{PROJECTS_DIR}"
+    system "mkdir #{PROJECTS_OUTPUT_DIR}"
+    system "mkdir #{PROJECTS_LOGS_DIR}"
+
+    # Setup AWS S3 bucket if running in production
+    if ENV['APP_ENV'] == 'production'
+      s3 = Aws::S3::Resource.new(region: ENV.fetch('AWS_REGION'))
+      s3_bucket = s3.bucket(ENV.fetch('AWS_S3_BUCKET_NAME'))
+      s3_bucket.objects(prefix: PROJECTS_LOGS_DIR).batch_delete!
+      s3_bucket.objects(prefix: PROJECTS_OUTPUT_DIR).batch_delete!
+    end
 
     # Create an array to keep track of threads and include MonitorMixin so we 
     # can signal when a thread finishes and schedule a new one
@@ -412,27 +443,36 @@ namespace :scrape do
 
         # Get a new unit of work from the work queue
         url = work_queue.pop
-        puts "C: URL: #{url}"
+        # puts "C: URL: #{url}"
 
         # Pass url to the new thread so it can use it as a parameter
         threads[found_index] = Thread.new(url) do
           # Scrape that shiz
-          log = url.gsub('://','_').gsub(/[\/&]/,'_')+"_"+datestamp
+          base = url.gsub('://','_').gsub(/[\/]/,'_')
+          log = PROJECTS_LOGS_DIR+base+"_"+datestamp
+          res = PROJECTS_OUTPUT_DIR+base+'/results.json'
           # Sometimes Quickscrape stalls; try up to 2 times, then move on
           for i in 1..2
             begin
-              result = Timeout::timeout(60) {
+              result = Timeout::timeout(120) {
                 system "quickscrape --url '#{url}' "+
                                    "--scraper #{PROJECTS_SCRAPER} "+
                                    "--output #{PROJECTS_OUTPUT_DIR} "+
-                                   "--loglevel error > #{PROJECTS_LOGS_DIR}/#{log}"
+                                   "--loglevel error > #{log}"
               }
             rescue Timeout::Error => e
               next
             end
             next unless result
           end
-          puts "C: FAILED: #{url}" unless result
+          # Process result
+          if !result
+            puts "C: FAILED: #{url}"
+            s3_bucket.object(log).put(log) if s3_bucket
+          elsif s3_bucket
+            s3_bucket.object(log).put('success')
+            s3_bucket.object(res).upload_file(res)
+          end
           # Mark thread as finished and tell consumer to check the thread array
           Thread.current["finished"] = true
           threads.synchronize do
@@ -445,9 +485,29 @@ namespace :scrape do
     # Consumer thread: Queue the work!
     producer_thread = Thread.new do
 
+      # If S3 is configured, retrieve files from S3; otherwise, retrieve from local
+      if s3_bucket
+        discovery_output = s3_bucket.objects(prefix: DISCOVERY_OUTPUT_DIR).collect(&:key)
+      else
+        discovery_output = Dir.glob("#{DISCOVERY_OUTPUT_DIR}/*").map {|d| "#{d}/results.json"}
+      end
+
       # Cycle over project URLs scraped from the Kickstarter Discovery pages
-      Dir.glob("#{DISCOVERY_OUTPUT_DIR}/https_www.kickstarter.*") do |discovery|
-        urls = JSON.parse(File.read(discovery+'/results.json'))
+      discovery_output.each do |discovery|
+        # If S3 is configured, retrieve files from S3; otherwise, retrieve from local
+        if s3_bucket
+          s3_bucket.object(discovery).get(response_target: discovery)
+        end
+
+
+
+        for i in 1..10
+          urls = s3_bucket ? s3_bucket.object(discovery).get(response_target: discovery) : 
+                             File.read(discovery+'/results.json')
+          break if urls
+          # Retry
+        end
+        urls = JSON.parse(urls)
 
         # Cycle over individual URLs and queue them up
         urls['project_url']['value'].each do |url|
@@ -495,11 +555,17 @@ namespace :scrape do
 
   desc 'Kickstarter Process'
   task :ks_process do
+    start_time = Time.now
 
-    # This script expects 'logs/ks/' and 'output/ks/' to already exist
-    PROJECTS_LOGS_DIR = 'logs/ks/projects'
-    PROJECTS_OUTPUT_DIR = 'output/ks/projects'
-    OUTPUT_DIR = 'output/ks'
+    PROJECTS_LOGS_DIR = 'ks/projects/logs'
+    PROJECTS_OUTPUT_DIR = 'ks/projects/output'
+    KS_DIR = 'ks/'
+
+    # Setup AWS S3 bucket if running in production
+    if ENV['APP_ENV'] == 'production'
+      s3 = Aws::S3::Resource.new(region: ENV.fetch('AWS_REGION'))
+      s3_bucket = s3.bucket(ENV.fetch('AWS_S3_BUCKET_NAME'))
+    end
 
     # Prepare CSV file for final output 
     final_csv = File.join(OUTPUT_DIR, "final_output_#{timestamp}.csv")
@@ -508,6 +574,13 @@ namespace :scrape do
             'content_images', 'content_videos', 'content_links', 'content_headers', 'content_full_description',
             'content_risks', 'pledges_amounts', 'pledge_titles', 'pledge_descriptions', 'pledge_extras', 'goal_amount',
             'pledged_amount', 'backers', 'end_date']
+
+    # If S3 is configured, retrieve results from S3; otherwise, retrieve from local
+    if s3_bucket
+
+    else
+      projects = Dir.glob("#{PROJECTS_OUTPUT_DIR}/https_www.kickstarter.*")
+    end
 
     # Cycle over abstracts scraped from the abstract links
     Dir.glob("#{PROJECTS_OUTPUT_DIR}/https_www.kickstarter.*") do |project|

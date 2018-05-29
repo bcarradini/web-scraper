@@ -1,0 +1,10 @@
+[36m[info][0m [phantom] Starting...
+[36m[info][0m [phantom] Running suite: 3 steps
+[32;1m[debug][0m [phantom] opening url: https://www.kickstarter.com/discover/advanced?category_id=1&woe_id=2347559&sort=newest&page=1, HTTP GET
+[32;1m[debug][0m [phantom] Navigation requested: url=https://www.kickstarter.com/discover/advanced?category_id=1&woe_id=2347559&sort=newest&page=1, type=Other, willNavigate=true, isMainFrame=true
+[32;1m[debug][0m [phantom] url changed to "https://www.kickstarter.com/discover/advanced?category_id=1&woe_id=2347559&sort=newest&page=1"
+[32;1m[debug][0m [phantom] Successfully injected Casper client-side utilities
+[32;1m[debug][0m [phantom] start page is loaded
+[36m[info][0m [phantom] Step anonymous 3/3 https://www.kickstarter.com/discover/advanced?category_id=1&woe_id=2347559&sort=newest&page=1 (HTTP 200)
+[36m[info][0m [phantom] Step anonymous 3/3: done in 3066ms.
+[36m[info][0m [phantom] Done 3 steps in 3067ms

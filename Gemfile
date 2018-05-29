@@ -7,6 +7,7 @@ gem 'pry'
 gem 'json'
 gem 'httparty'
 gem 'rack'
+gem 'aws-sdk-s3'
 
 group :development do
 end

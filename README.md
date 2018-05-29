@@ -1,4 +1,4 @@
-# data-mining-scraper
+# web-scraper
 
 This tool utilizes `quickscrape` to scrape data from various web sites; e.g., abstracts from Business and Professional Communication Quarterly (BPCQ).
 

@@ -5,4 +5,7 @@ require 'pry'
 require 'json'
 require 'csv'
 
+require 'dotenv'
+Dotenv.load
+
 Pry.start self
