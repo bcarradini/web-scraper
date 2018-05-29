@@ -137,22 +137,23 @@ namespace :scrape do
 
 
   desc 'Kickstarter Discovery'
-  task :ks_discovery do
+  task :ks_discovery, [:region, :category] do |task, args|
     start_time = Time.now
 
     DISCOVERY_SCRAPER = File.absolute_path('scrapers/ks_discovery.json')
     DISCOVERY_DIR = 'ks/discovery'
-    DISCOVERY_LOGS_DIR = "#{DISCOVERY_DIR}/logs/"
-    DISCOVERY_OUTPUT_DIR = "#{DISCOVERY_DIR}/output/"
+    DISCOVERY_LOGS_DIR = "#{DISCOVERY_DIR}/logs"
+    DISCOVERY_OUTPUT_DIR = "#{DISCOVERY_DIR}/output"
 
     # Cleanup old directories and (re-)create
     system "rm -rf #{DISCOVERY_DIR}"
     system "mkdir #{DISCOVERY_DIR}"
-    system "mkdir #{DISCOVERY_OUTPUT_DIR}"
     system "mkdir #{DISCOVERY_LOGS_DIR}"
+    system "mkdir #{DISCOVERY_OUTPUT_DIR}"
 
     # Setup AWS S3 bucket if running in production
     if ENV['APP_ENV'] == 'production'
+      puts "production!"
       s3 = Aws::S3::Resource.new(region: ENV.fetch('AWS_REGION'))
       s3_bucket = s3.bucket(ENV.fetch('AWS_S3_BUCKET_NAME'))
       s3_bucket.objects(prefix: DISCOVERY_LOGS_DIR).batch_delete!
@@ -225,18 +226,17 @@ namespace :scrape do
     #   Asia = 24865671
     #   Europe = 24865675
     #   Australasia = 55949069
-    # regions = [# 50 US States + District of Columbia:
-    #            2347559, 2347560, 2347561, 2347562, 2347563, 2347564, 2347565, 2347566, 2347567, 2347568, 
-    #            2347569, 2347570, 2347571, 2347572, 2347573, 2347574, 2347575, 2347576, 2347577, 2347578, 
-    #            2347579, 2347580, 2347581, 2347582, 2347583, 2347584, 2347585, 2347586, 2347587, 2347588, 
-    #            2347589, 2347590, 2347591, 2347592, 2347593, 2347594, 2347595, 2347596, 2347597, 2347598, 
-    #            2347599, 2347600, 2347601, 2347602, 2347603, 2347604, 2347605, 2347606, 2347607, 2347608, 
-    #            2347609, 
-    #            # Non-US, Western Hemisphere:
-    #            23424775, 24865707, 23424900, 24865673, 
-    #            # Eastern Hemisphere:
-    #            24865670, 24865671, 24865675, 55949069]
-    regions = [2347559] # TODO: Remove after testing
+    regions = [# 50 US States + District of Columbia:
+               2347559, 2347560, 2347561, 2347562, 2347563, 2347564, 2347565, 2347566, 2347567, 2347568, 
+               2347569, 2347570, 2347571, 2347572, 2347573, 2347574, 2347575, 2347576, 2347577, 2347578, 
+               2347579, 2347580, 2347581, 2347582, 2347583, 2347584, 2347585, 2347586, 2347587, 2347588, 
+               2347589, 2347590, 2347591, 2347592, 2347593, 2347594, 2347595, 2347596, 2347597, 2347598, 
+               2347599, 2347600, 2347601, 2347602, 2347603, 2347604, 2347605, 2347606, 2347607, 2347608, 
+               2347609, 
+               # Non-US, Western Hemisphere:
+               23424775, 24865707, 23424900, 24865673, 
+               # Eastern Hemisphere:
+               24865670, 24865671, 24865675, 55949069]
 
     # Kickstarter categories:
     #   1 = Art
@@ -254,8 +254,7 @@ namespace :scrape do
     #   18 = Publishing
     #   16 = Technology
     #   17 = Theater
-    # categories = [1, 3, 26, 6, 7, 9, 11, 10, 12, 13, 14, 15, 18, 16, 17, ]
-    categories = [1, ]
+    categories = [1, 3, 26, 6, 7, 9, 11, 10, 12, 13, 14, 15, 18, 16, 17, ]
 
     # Create an array to keep track of threads and include MonitorMixin so we 
     # can signal when a thread finishes and schedule a new one
@@ -291,22 +290,26 @@ namespace :scrape do
         end
 
         # Get a new unit of work from the work queue
-        url = work_queue.pop
-        # puts "C: URL: #{url}"
+        work = work_queue.pop
+        region = work[:region]
+        category = work[:category]
+        url = work[:url]
+        puts "C: r #{region}: c #{category}: url #{url}"
 
         # Pass url to the new thread so it can use it as a parameter
         threads[found_index] = Thread.new(url) do
           # Scrape that shiz
           base = url.gsub('://','_').gsub(/[\/]/,'_')
-          log = DISCOVERY_LOGS_DIR+base+"_"+datestamp
-          res = DISCOVERY_OUTPUT_DIR+base+'/results.json'
+          log = "#{DISCOVERY_LOGS_DIR}/#{region}/#{category}/#{base}_#{datestamp}"
+          out_dir = "#{DISCOVERY_OUTPUT_DIR}/#{region}/#{category}"
+          out_res = "#{out_dir}/#{base}/results.json"
           # Sometimes Quickscrape stalls; try up to 2 times, then move on
           for i in 1..2
             begin
               result = Timeout::timeout(60) {
                 system "quickscrape --url '#{url}' "+
                                    "--scraper #{DISCOVERY_SCRAPER} "+
-                                   "--output #{DISCOVERY_OUTPUT_DIR} "+
+                                   "--output #{out_dir} "+
                                    "--loglevel error > '#{log}'"
               }
             rescue Timeout::Error => e
@@ -319,8 +322,7 @@ namespace :scrape do
             puts "C: FAILED: #{url}"
             s3_bucket.object(log).put(log) if s3_bucket
           elsif s3_bucket
-            s3_bucket.object(log).put('success')
-            s3_bucket.object(res).upload_file(res)
+            s3_bucket.object(out_res).upload_file(out_res)
           end
           # Mark thread as finished and tell consumer to check the thread array
           Thread.current["finished"] = true
@@ -336,8 +338,16 @@ namespace :scrape do
 
       # Cycle through the Kickstarter Discovery pages, harvesting project URLs
       regions.each do |region|
+        next if (args[:region] && args[:region].to_i != region)
+
         categories.each do |category|
+          next if (args[:category] && args[:category].to_i != category)
+
           base_url = kickstarter_base_url(region, category, 'newest')
+          system "mkdir #{DISCOVERY_LOGS_DIR}/#{region}"
+          system "mkdir #{DISCOVERY_LOGS_DIR}/#{region}/#{category}"
+          system "mkdir #{DISCOVERY_OUTPUT_DIR}/#{region}"
+          system "mkdir #{DISCOVERY_OUTPUT_DIR}/#{region}/#{category}"
 
           # Setup base URL and cycle through up to 200 discovery pages
           for page in 1..200
@@ -349,14 +359,13 @@ namespace :scrape do
               break if response.parsed_response.match /\<div.*id=\"projects_list\">[[:space:]]*<\/div>/
             end
             if (page % 100) == 1
-              puts "P: page: #{page}"
+              puts "P: r #{region}: c #{category}: page #{page}"
             end
             # Queue URL for scraping, then tell consumer to check the thread array
-            work_queue.push(url)
+            work_queue.push({region: region, category: category, url: url})
             threads.synchronize do
               threads_available.signal
             end
-            break # TODO: Remove after S3 integration
           end
         end
       end
@@ -379,7 +388,7 @@ namespace :scrape do
 
     # Calculate execution time 
     execution_time = (Time.now - start_time).round(0)
-    puts "\nExecution Time: #{Time.at(execution_time).utc.strftime("%H:%M:%S")}\n"
+    puts "Execution Time: #{Time.at(execution_time).utc.strftime("%H:%M:%S")}"
   end
 
 
@@ -470,7 +479,6 @@ namespace :scrape do
             puts "C: FAILED: #{url}"
             s3_bucket.object(log).put(log) if s3_bucket
           elsif s3_bucket
-            s3_bucket.object(log).put('success')
             s3_bucket.object(res).upload_file(res)
           end
           # Mark thread as finished and tell consumer to check the thread array
