@@ -3,6 +3,7 @@ require 'csv'
 require 'httparty'
 require 'timeout'
 require 'aws-sdk-s3'
+require 'fileutils'
 
 namespace :scrape do
   SAGE_URL = 'http://journals.sagepub.com'
@@ -148,11 +149,9 @@ namespace :scrape do
     DISCOVERY_OUTPUT_DIR = "#{DISCOVERY_DIR}/output"
 
     # Cleanup old directories and (re-)create
-    `rm -rf "#{DISCOVERY_DIR}"`
-    `mkdir ks/`
-    `mkdir "#{DISCOVERY_DIR}"`
-    `mkdir "#{DISCOVERY_LOGS_DIR}"`
-    `mkdir "#{DISCOVERY_OUTPUT_DIR}"`
+    FileUtils.rm_rf DISCOVERY_DIR
+    FileUtils.mkdir_p DISCOVERY_LOGS_DIR
+    FileUtils.mkdir_p DISCOVERY_OUTPUT_DIR
 
     # Setup AWS S3 bucket if running in production
     if ENV['APP_ENV'] == 'production'
@@ -346,11 +345,9 @@ namespace :scrape do
         categories.each do |category|
           next if (args[:category] && args[:category].to_i != category)
 
+          FileUtils.mkdir_p "#{DISCOVERY_LOGS_DIR}/#{region}/#{category}"
+          FileUtils.mkdir_p "#{DISCOVERY_OUTPUT_DIR}/#{region}/#{category}"
           base_url = kickstarter_base_url(region, category, 'newest')
-          `mkdir "#{DISCOVERY_LOGS_DIR}"/"#{region}"`
-          `mkdir "#{DISCOVERY_LOGS_DIR}"/"#{region}"/"#{category}"`
-          `mkdir "#{DISCOVERY_OUTPUT_DIR}"/"#{region}"`
-          `mkdir "#{DISCOVERY_OUTPUT_DIR}"/"#{region}"/"#{category}"`
 
           # Setup base URL and cycle through up to 200 discovery pages
           for page in 1..200
