@@ -215,7 +215,7 @@ var processUrl = function(url) {
     return;
   }
 
-  log.info('processUrl: 1');
+  log.error('TEMP: processUrl: 1');
 
   // url-specific output dir
   var dir = url.replace(/\/+/g, '_').replace(/:/g, '');
@@ -226,7 +226,7 @@ var processUrl = function(url) {
   }
   process.chdir(dir);
 
-  log.info('processUrl: 2');
+  log.error('TEMP: processUrl: 2');
 
   // run scraper
   var capturesFailed = 0;
@@ -237,7 +237,7 @@ var processUrl = function(url) {
             ep.compose(this.event, var1, var2));
   });
 
-  log.info('processUrl: 3');
+  log.error('TEMP: processUrl: 3');
 
   t.on('scraper.elementCaptureFailed', function() {
     capturesFailed += 1;
@@ -247,7 +247,7 @@ var processUrl = function(url) {
     log.info(this.event, var1, var2)
   });
 
-  log.info('processUrl: 4');
+  log.error('TEMP: processUrl: 4');
 
   t.once('result', function(result, structured) {
     var nresults = Object.keys(result).length
@@ -271,7 +271,7 @@ var processUrl = function(url) {
     done = true;
   });
 
-  log.info('processUrl: 5');
+  log.error('TEMP: processUrl: 5');
 
   t.scrape(url, program.headless);
 }
