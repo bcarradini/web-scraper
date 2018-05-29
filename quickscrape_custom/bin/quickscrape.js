@@ -215,6 +215,8 @@ var processUrl = function(url) {
     return;
   }
 
+  log.info('processUrl: 1');
+
   // url-specific output dir
   var dir = url.replace(/\/+/g, '_').replace(/:/g, '');
   dir = path.join(tld, dir);
@@ -223,6 +225,8 @@ var processUrl = function(url) {
     fs.mkdirSync(dir);
   }
   process.chdir(dir);
+
+  log.info('processUrl: 2');
 
   // run scraper
   var capturesFailed = 0;
@@ -233,6 +237,8 @@ var processUrl = function(url) {
             ep.compose(this.event, var1, var2));
   });
 
+  log.info('processUrl: 3');
+
   t.on('scraper.elementCaptureFailed', function() {
     capturesFailed += 1;
   })
@@ -240,6 +246,8 @@ var processUrl = function(url) {
   t.on('scraper.renderer.*', function(var1, var2) {
     log.info(this.event, var1, var2)
   });
+
+  log.info('processUrl: 4');
 
   t.once('result', function(result, structured) {
     var nresults = Object.keys(result).length
@@ -262,6 +270,8 @@ var processUrl = function(url) {
 
     done = true;
   });
+
+  log.info('processUrl: 5');
 
   t.scrape(url, program.headless);
 }
