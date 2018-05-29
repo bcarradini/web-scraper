@@ -1,1 +1,1 @@
-dummy: bundle exec -- rackup -p 3000
+dummy: bundle exec -- rackup -p $PORT
