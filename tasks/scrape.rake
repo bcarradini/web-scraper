@@ -66,7 +66,7 @@ namespace :scrape do
       while (((volume <  last_volume) && (issue <= 4)) ||
              ((volume == last_volume) && (issue <= last_issue)))
         puts "\nScraping volume #{volume}, issue #{issue}"
-        result = system "node_modules/quickscrape/bin/quickscrape.js "+
+        result = system "quickscrape_custom/bin/quickscrape.js "+
                           "--url #{SAGE_URL}/toc/bcqe/#{volume}/#{issue} "+
                           "--scraper #{LINKS_SCRAPER} "+
                           "--output #{LINKS_OUTPUT_DIR} > #{LINKS_LOGS_DIR}/#{volume}_#{issue}"
@@ -87,7 +87,7 @@ namespace :scrape do
       # Cycle over individual links and scrape each abstract
       json['abstract_link']['value'].each do |link|
         puts "  Scraping #{link}"
-        result = system "node_modules/quickscrape/bin/quickscrape.js "+
+        result = system "quickscrape_custom/bin/quickscrape.js "+
                           "--url #{SAGE_URL}#{link} "+
                           "--scraper #{ABSTRACTS_SCRAPER} "+
                           "--output #{ABSTRACTS_OUTPUT_DIR} > #{ABSTRACTS_LOGS_DIR}/#{log_cnt}"
@@ -309,7 +309,7 @@ namespace :scrape do
           for i in 1..2
             begin
               result = Timeout::timeout(60) {
-                system "node_modules/quickscrape/bin/quickscrape.js "+
+                system "quickscrape_custom/bin/quickscrape.js "+
                           "--url '#{url}' "+
                           "--scraper #{DISCOVERY_SCRAPER} "+
                           "--output #{out_dir} "+
@@ -467,7 +467,7 @@ namespace :scrape do
           for i in 1..2
             begin
               result = Timeout::timeout(120) {
-                system "node_modules/quickscrape/bin/quickscrape.js "+
+                system "quickscrape_custom/bin/quickscrape.js "+
                           "--url '#{url}' "+
                           "--scraper #{PROJECTS_SCRAPER} "+
                           "--output #{PROJECTS_OUTPUT_DIR} "+

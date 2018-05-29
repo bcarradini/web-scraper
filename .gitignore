@@ -6,6 +6,7 @@
 
 # Ignore environment
 .env
+node_modules/*
 
 # Ignore all log files and output files
 /logs

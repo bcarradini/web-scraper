@@ -3,9 +3,7 @@
   "version": "1.0.0",
   "description": "This tool utilizes `quickscrape` to scrape data from various web sites; e.g., abstracts from Business and Professional Communication Quarterly (BPCQ).",
   "main": "index.js",
-  "dependencies": {
-    "quickscrape": "^0.4.7"
-  },
+  "dependencies": {},
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
