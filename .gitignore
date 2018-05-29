@@ -18,4 +18,5 @@ node_modules/*
 /output/split/*
 /output/ks/*
 /output/http*
-/ks/*
+/ks/discovery/*
+/ks/projects/*
