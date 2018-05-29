@@ -66,7 +66,7 @@ namespace :scrape do
       while (((volume <  last_volume) && (issue <= 4)) ||
              ((volume == last_volume) && (issue <= last_issue)))
         puts "\nScraping volume #{volume}, issue #{issue}"
-        result = system "quickscrape --url #{SAGE_URL}/toc/bcqe/#{volume}/#{issue} "+
+        result = system "node_modules/quickscrape/bin/quickscrape.js --url #{SAGE_URL}/toc/bcqe/#{volume}/#{issue} "+
                                     "--scraper #{LINKS_SCRAPER} "+
                                     "--output #{LINKS_OUTPUT_DIR} > #{LINKS_LOGS_DIR}/#{volume}_#{issue}"
         puts "ERROR: Failed to scrape volume #{volume}, issue #{issue}..." unless result
@@ -86,7 +86,7 @@ namespace :scrape do
       # Cycle over individual links and scrape each abstract
       json['abstract_link']['value'].each do |link|
         puts "  Scraping #{link}"
-        result = system "quickscrape --url #{SAGE_URL}#{link} "+
+        result = system "node_modules/quickscrape/bin/quickscrape.js --url #{SAGE_URL}#{link} "+
                                     "--scraper #{ABSTRACTS_SCRAPER} "+
                                     "--output #{ABSTRACTS_OUTPUT_DIR} > #{ABSTRACTS_LOGS_DIR}/#{log_cnt}"
         log_cnt += 1
@@ -147,13 +147,13 @@ namespace :scrape do
 
     # Cleanup old directories and (re-)create
     system "rm -rf #{DISCOVERY_DIR}"
+    system "mkdir ks/"
     system "mkdir #{DISCOVERY_DIR}"
     system "mkdir #{DISCOVERY_LOGS_DIR}"
     system "mkdir #{DISCOVERY_OUTPUT_DIR}"
 
     # Setup AWS S3 bucket if running in production
     if ENV['APP_ENV'] == 'production'
-      puts "production!"
       s3 = Aws::S3::Resource.new(region: ENV.fetch('AWS_REGION'))
       s3_bucket = s3.bucket(ENV.fetch('AWS_S3_BUCKET_NAME'))
       s3_bucket.objects(prefix: DISCOVERY_LOGS_DIR).batch_delete!
@@ -307,7 +307,7 @@ namespace :scrape do
           for i in 1..2
             begin
               result = Timeout::timeout(60) {
-                system "quickscrape --url '#{url}' "+
+                system "node_modules/quickscrape/bin/quickscrape.js --url '#{url}' "+
                                    "--scraper #{DISCOVERY_SCRAPER} "+
                                    "--output #{out_dir} "+
                                    "--loglevel error > '#{log}'"
@@ -464,7 +464,7 @@ namespace :scrape do
           for i in 1..2
             begin
               result = Timeout::timeout(120) {
-                system "quickscrape --url '#{url}' "+
+                system "node_modules/quickscrape/bin/quickscrape.js --url '#{url}' "+
                                    "--scraper #{PROJECTS_SCRAPER} "+
                                    "--output #{PROJECTS_OUTPUT_DIR} "+
                                    "--loglevel error > #{log}"
