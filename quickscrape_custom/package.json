@@ -1,28 +1,4 @@
 {
-  "_from": "quickscrape",
-  "_id": "quickscrape@0.4.7",
-  "_inBundle": false,
-  "_integrity": "sha1-Z5tnju/eEmzsZ63ICR6xdlCgArI=",
-  "_location": "/quickscrape",
-  "_phantomChildren": {},
-  "_requested": {
-    "type": "tag",
-    "registry": true,
-    "raw": "quickscrape",
-    "name": "quickscrape",
-    "escapedName": "quickscrape",
-    "rawSpec": "",
-    "saveSpec": null,
-    "fetchSpec": "latest"
-  },
-  "_requiredBy": [
-    "#USER",
-    "/"
-  ],
-  "_resolved": "https://registry.npmjs.org/quickscrape/-/quickscrape-0.4.7.tgz",
-  "_shasum": "679b678eefde126cec67adc8091eb17650a002b2",
-  "_spec": "quickscrape",
-  "_where": "/Users/barbara/Dev/web-scraper",
   "author": {
     "name": "Richard Smith-Unna",
     "email": "rds45@cam.ac.uk",
