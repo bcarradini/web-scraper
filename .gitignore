@@ -14,6 +14,5 @@ sftp-config.json
 
 # Ignore output
 /output/http*
-/output/bpcq/*
 /ks/discovery/*
 /ks/projects/*
