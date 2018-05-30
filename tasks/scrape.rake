@@ -141,6 +141,9 @@ namespace :scrape do
 
   desc 'Kickstarter Discovery'
   task :ks_discovery, [:region, :category] do |task, args|
+    # Disable command
+    abort("Script executed on May 29th. Don't re-run! Don't destroy the data!")
+
     start_time = Time.now
 
     DISCOVERY_SCRAPER = File.absolute_path('scrapers/ks_discovery.json')
@@ -149,7 +152,7 @@ namespace :scrape do
     DISCOVERY_OUTPUT_DIR = "#{DISCOVERY_DIR}/output"
 
     # Cleanup old directories and (re-)create
-    FileUtils.rm_rf DISCOVERY_DIR
+    # FileUtils.rm_rf DISCOVERY_DIR
     FileUtils.mkdir_p DISCOVERY_LOGS_DIR
     FileUtils.mkdir_p DISCOVERY_OUTPUT_DIR
 
