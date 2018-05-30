@@ -7,16 +7,13 @@
 # Ignore environment
 .env
 node_modules/*
+sftp-config.json
 
 # Ignore all log files and output files
 /logs
 
-# Ignore journal-scrapers (a 3rd-party library of scraper examples)
-/journal-scrapers
-
 # Ignore output
-/output/split/*
-/output/ks/*
 /output/http*
+/output/bpcq/*
 /ks/discovery/*
 /ks/projects/*
