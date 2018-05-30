@@ -67,7 +67,7 @@ namespace :scrape do
       while (((volume <  last_volume) && (issue <= 4)) ||
              ((volume == last_volume) && (issue <= last_issue)))
         puts "\nScraping volume #{volume}, issue #{issue}"
-        result = system "quickscrape_custom/bin/quickscrape.js "+
+        result = system "quickscrape "+
                           "--url #{SAGE_URL}/toc/bcqe/#{volume}/#{issue} "+
                           "--scraper #{LINKS_SCRAPER} "+
                           "--output #{LINKS_OUTPUT_DIR} > #{LINKS_LOGS_DIR}/#{volume}_#{issue}"
@@ -88,7 +88,7 @@ namespace :scrape do
       # Cycle over individual links and scrape each abstract
       json['abstract_link']['value'].each do |link|
         puts "  Scraping #{link}"
-        result = system "quickscrape_custom/bin/quickscrape.js "+
+        result = system "quickscrape "+
                           "--url #{SAGE_URL}#{link} "+
                           "--scraper #{ABSTRACTS_SCRAPER} "+
                           "--output #{ABSTRACTS_OUTPUT_DIR} > #{ABSTRACTS_LOGS_DIR}/#{log_cnt}"
@@ -258,18 +258,18 @@ namespace :scrape do
     categories = [1, 3, 26, 6, 7, 9, 11, 10, 12, 13, 14, 15, 18, 16, 17, ]
 
     # Create an array to keep track of threads and include MonitorMixin so we 
-    # can signal when a thread finishes and schedule a new one
-    thread_count = 10
+    # can signal when a thread finishes and schedule a new one.
+    thread_count = 24
     threads = Array.new(thread_count)
     threads.extend(MonitorMixin)
 
-    # Add a condition on the monitored array to tell the consumer that
+    # Add a condition on the monitored array to tell the consumer that.
     threads_available = threads.new_cond
 
-    # Create a work queue for the producer to give work to the consumer
+    # Create a work queue for the producer to give work to the consumer.
     work_queue = SizedQueue.new(thread_count)
 
-    # Add a variable to tell the consumer that we are done producing work
+    # Add a variable to tell the consumer that we are done producing work.
     sysexit = false
 
     # Consumer thread: Schedule the work!
@@ -295,7 +295,7 @@ namespace :scrape do
         region = work[:region]
         category = work[:category]
         url = work[:url]
-        puts "C: r #{region}: c #{category}: url #{url}"
+        # puts "C: r #{region}: c #{category}: url #{url}"
 
         # Pass url to the new thread so it can use it as a parameter
         threads[found_index] = Thread.new(url) do
@@ -308,11 +308,11 @@ namespace :scrape do
           for i in 1..2
             begin
               result = Timeout::timeout(60) {
-                system "quickscrape_custom/bin/quickscrape.js "+
+                system "quickscrape "+
                           "--url '#{url}' "+
                           "--scraper #{DISCOVERY_SCRAPER} "+
                           "--output #{out_dir} "+
-                          "--loglevel error > '#{log}'"
+                          "--loglevel error > #{log}"
               }
             rescue Timeout::Error => e
               next
@@ -464,7 +464,7 @@ namespace :scrape do
           for i in 1..2
             begin
               result = Timeout::timeout(120) {
-                system "quickscrape_custom/bin/quickscrape.js "+
+                system "quickscrape "+
                           "--url '#{url}' "+
                           "--scraper #{PROJECTS_SCRAPER} "+
                           "--output #{PROJECTS_OUTPUT_DIR} "+
@@ -507,8 +507,6 @@ namespace :scrape do
         if s3_bucket
           s3_bucket.object(discovery).get(response_target: discovery)
         end
-
-
 
         for i in 1..10
           urls = s3_bucket ? s3_bucket.object(discovery).get(response_target: discovery) : 
