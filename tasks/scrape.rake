@@ -2,7 +2,6 @@ require 'json'
 require 'csv'
 require 'httparty'
 require 'timeout'
-require 'aws-sdk-s3'
 require 'fileutils'
 
 namespace :scrape do
@@ -155,14 +154,6 @@ namespace :scrape do
     # FileUtils.rm_rf DISCOVERY_DIR
     FileUtils.mkdir_p DISCOVERY_LOGS_DIR
     FileUtils.mkdir_p DISCOVERY_OUTPUT_DIR
-
-    # Setup AWS S3 bucket if running in production
-    if ENV['APP_ENV'] == 'production'
-      s3 = Aws::S3::Resource.new(region: ENV.fetch('AWS_REGION'))
-      s3_bucket = s3.bucket(ENV.fetch('AWS_S3_BUCKET_NAME'))
-      s3_bucket.objects(prefix: DISCOVERY_LOGS_DIR).batch_delete!
-      s3_bucket.objects(prefix: DISCOVERY_OUTPUT_DIR).batch_delete!
-    end
 
     # Kickstarter regions:
     #
@@ -325,9 +316,6 @@ namespace :scrape do
           # Process result
           if !result
             puts "C: FAILED: #{url}"
-            s3_bucket.object(log).put(log) if s3_bucket
-          elsif s3_bucket
-            s3_bucket.object(out_res).upload_file(out_res)
           end
           # Mark thread as finished and tell consumer to check the thread array
           Thread.current["finished"] = true
@@ -361,6 +349,7 @@ namespace :scrape do
               response = HTTParty.get(url)
               break if response.parsed_response.match /\<div.*id=\"projects_list\">[[:space:]]*<\/div>/
             end
+            # Log progress
             if (page % 100) == 1
               puts "P: r #{region}: c #{category}: page #{page}"
             end
@@ -411,14 +400,6 @@ namespace :scrape do
     system "mkdir #{PROJECTS_DIR}"
     system "mkdir #{PROJECTS_OUTPUT_DIR}"
     system "mkdir #{PROJECTS_LOGS_DIR}"
-
-    # Setup AWS S3 bucket if running in production
-    if ENV['APP_ENV'] == 'production'
-      s3 = Aws::S3::Resource.new(region: ENV.fetch('AWS_REGION'))
-      s3_bucket = s3.bucket(ENV.fetch('AWS_S3_BUCKET_NAME'))
-      s3_bucket.objects(prefix: PROJECTS_LOGS_DIR).batch_delete!
-      s3_bucket.objects(prefix: PROJECTS_OUTPUT_DIR).batch_delete!
-    end
 
     # Create an array to keep track of threads and include MonitorMixin so we 
     # can signal when a thread finishes and schedule a new one
@@ -481,9 +462,6 @@ namespace :scrape do
           # Process result
           if !result
             puts "C: FAILED: #{url}"
-            s3_bucket.object(log).put(log) if s3_bucket
-          elsif s3_bucket
-            s3_bucket.object(res).upload_file(res)
           end
           # Mark thread as finished and tell consumer to check the thread array
           Thread.current["finished"] = true
@@ -571,12 +549,6 @@ namespace :scrape do
     PROJECTS_OUTPUT_DIR = 'ks/projects/output'
     KS_DIR = 'ks/'
 
-    # Setup AWS S3 bucket if running in production
-    if ENV['APP_ENV'] == 'production'
-      s3 = Aws::S3::Resource.new(region: ENV.fetch('AWS_REGION'))
-      s3_bucket = s3.bucket(ENV.fetch('AWS_S3_BUCKET_NAME'))
-    end
-
     # Prepare CSV file for final output 
     final_csv = File.join(OUTPUT_DIR, "final_output_#{timestamp}.csv")
     csv = CSV.open(final_csv, "wb")
@@ -585,12 +557,7 @@ namespace :scrape do
             'content_risks', 'pledges_amounts', 'pledge_titles', 'pledge_descriptions', 'pledge_extras', 'goal_amount',
             'pledged_amount', 'backers', 'end_date']
 
-    # If S3 is configured, retrieve results from S3; otherwise, retrieve from local
-    if s3_bucket
-
-    else
-      projects = Dir.glob("#{PROJECTS_OUTPUT_DIR}/https_www.kickstarter.*")
-    end
+    projects = Dir.glob("#{PROJECTS_OUTPUT_DIR}/https_www.kickstarter.*")
 
     # Cycle over abstracts scraped from the abstract links
     Dir.glob("#{PROJECTS_OUTPUT_DIR}/https_www.kickstarter.*") do |project|
