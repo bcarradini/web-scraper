@@ -385,35 +385,34 @@ namespace :scrape do
 
 
   desc 'Kickstarter Projects'
-  task :ks_projects do
+  task :ks_projects, [:region, :category] do |task, args|
     start_time = Time.now
 
     # This script expects 'ks/logs/' and 'ks/output/' to already exist
     DISCOVERY_OUTPUT_DIR = 'ks/discovery/output'
-    PROJECTS_SCRAPER = File.absolute_path('scrapers/ks_project.json')
+    PROJECTS_SCRAPER = File.absolute_path('scrapers/ks_projects.json')
     PROJECTS_DIR = 'ks/projects'
-    PROJECTS_LOGS_DIR = "#{PROJECTS_DIR}/logs/"
-    PROJECTS_OUTPUT_DIR = "#{PROJECTS_DIR}/output/"
+    PROJECTS_LOGS_DIR = "#{PROJECTS_DIR}/logs"
+    PROJECTS_OUTPUT_DIR = "#{PROJECTS_DIR}/output"
 
     # Cleanup old directories and (re-)create
-    system "rm -rf #{PROJECTS_DIR}"
-    system "mkdir #{PROJECTS_DIR}"
-    system "mkdir #{PROJECTS_OUTPUT_DIR}"
-    system "mkdir #{PROJECTS_LOGS_DIR}"
+    FileUtils.rm_rf PROJECTS_DIR
+    FileUtils.mkdir_p PROJECTS_LOGS_DIR
+    FileUtils.mkdir_p PROJECTS_OUTPUT_DIR
 
     # Create an array to keep track of threads and include MonitorMixin so we 
-    # can signal when a thread finishes and schedule a new one
-    thread_count = 10
+    # can signal when a thread finishes and schedule a new one.
+    thread_count = 24
     threads = Array.new(thread_count)
     threads.extend(MonitorMixin)
 
-    # Add a condition on the monitored array to tell the consumer that
+    # Add a condition on the monitored array to tell the consumer that.
     threads_available = threads.new_cond
 
-    # Create a work queue for the producer to give work to the consumer
+    # Create a work queue for the producer to give work to the consumer.
     work_queue = SizedQueue.new(thread_count)
 
-    # Add a variable to tell the consumer that we are done producing work
+    # Add a variable to tell the consumer that we are done producing work.
     sysexit = false
 
     # Consumer thread: Schedule the work!
@@ -435,23 +434,27 @@ namespace :scrape do
         end
 
         # Get a new unit of work from the work queue
-        url = work_queue.pop
-        # puts "C: URL: #{url}"
+        work = work_queue.pop
+        region = work[:region]
+        category = work[:category]
+        url = work[:url]
+        puts "C: r #{region}: c #{category}: url #{url}"
 
         # Pass url to the new thread so it can use it as a parameter
         threads[found_index] = Thread.new(url) do
           # Scrape that shiz
           base = url.gsub('://','_').gsub(/[\/]/,'_')
-          log = PROJECTS_LOGS_DIR+base+"_"+datestamp
-          res = PROJECTS_OUTPUT_DIR+base+'/results.json'
+          log = "#{PROJECTS_LOGS_DIR}/#{region}/#{category}/#{base}_#{datestamp}"
+          out_dir = "#{PROJECTS_OUTPUT_DIR}/#{region}/#{category}"
+          out_res = "#{out_dir}/#{base}/results.json"
           # Sometimes Quickscrape stalls; try up to 2 times, then move on
           for i in 1..2
             begin
-              result = Timeout::timeout(120) {
+              result = Timeout::timeout(300) {
                 system "quickscrape "+
                           "--url '#{url}' "+
                           "--scraper #{PROJECTS_SCRAPER} "+
-                          "--output #{PROJECTS_OUTPUT_DIR} "+
+                          "--output #{out_dir} "+
                           "--loglevel error > #{log}"
               }
             rescue Timeout::Error => e
@@ -475,35 +478,37 @@ namespace :scrape do
     # Consumer thread: Queue the work!
     producer_thread = Thread.new do
 
-      # If S3 is configured, retrieve files from S3; otherwise, retrieve from local
-      if s3_bucket
-        discovery_output = s3_bucket.objects(prefix: DISCOVERY_OUTPUT_DIR).collect(&:key)
-      else
-        discovery_output = Dir.glob("#{DISCOVERY_OUTPUT_DIR}/*").map {|d| "#{d}/results.json"}
-      end
-
       # Cycle over project URLs scraped from the Kickstarter Discovery pages
-      discovery_output.each do |discovery|
-        # If S3 is configured, retrieve files from S3; otherwise, retrieve from local
-        if s3_bucket
-          s3_bucket.object(discovery).get(response_target: discovery)
-        end
+      Dir.glob("#{DISCOVERY_OUTPUT_DIR}/*").each do |discovery_region_dir| 
+        region = discovery_region_dir.gsub(/#{DISCOVERY_OUTPUT_DIR}\//,'')
+        next if (args[:region] && args[:region] != region)
 
-        for i in 1..10
-          urls = s3_bucket ? s3_bucket.object(discovery).get(response_target: discovery) : 
-                             File.read(discovery+'/results.json')
-          break if urls
-          # Retry
-        end
-        urls = JSON.parse(urls)
+        Dir.glob("#{discovery_region_dir}/*").each do |discovery_category_dir|
+          category = discovery_category_dir.gsub(/#{DISCOVERY_OUTPUT_DIR}\/.*\//,'')
+          next if (args[:category] && args[:category] != category)
 
-        # Cycle over individual URLs and queue them up
-        urls['project_url']['value'].each do |url|
-          # Queue URL for scraping
-          work_queue.push(url)
-          # Tell consumer to check the thread array
-          threads.synchronize do
-            threads_available.signal
+          FileUtils.mkdir_p "#{PROJECTS_LOGS_DIR}/#{region}/#{category}"
+          FileUtils.mkdir_p "#{PROJECTS_OUTPUT_DIR}/#{region}/#{category}"
+
+          Dir.glob("#{discovery_category_dir}/*").each do |discovery_page_dir|
+            page = discovery_page_dir.match(/page=.*/).to_s.gsub(/page=/,'').to_i
+            urls = File.read(discovery_page_dir+'/results.json')
+            urls = JSON.parse(urls)['project_url']['value']
+
+            # Log progress
+            if (page % 100) == 1
+              puts "P: r #{region}: c #{category}: page #{page}"
+            end
+
+            # Cycle over individual URLs and queue them up
+            urls.each do |url|
+              # Queue URL for scraping, then tell consumer to check the thread array
+              work_queue.push({region: region, category: category, url: url})
+              threads.synchronize do
+                threads_available.signal
+              end
+            end
+
           end
         end
       end
