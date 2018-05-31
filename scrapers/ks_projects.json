@@ -26,6 +26,10 @@
       "selector": "//div[contains(@class,'project-image')]/div[contains(@class,'video-player')]",
       "attribute": "data-video-url"
     },
+    "supporting_material": {
+      "selector": "//div[@class='supporting-material-callout__overlay-block']",
+      "attribute": "text"
+    },
     "content_images": {
       "selector": "//div[contains(@class,'description-container')]//img[not(parent::div[@class='video-player'])]",
       "attribute": "src"
