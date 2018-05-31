@@ -438,7 +438,7 @@ namespace :scrape do
         region = work[:region]
         category = work[:category]
         url = work[:url]
-        puts "C: r #{region}: c #{category}: url #{url}"
+        # puts "C: r #{region}: c #{category}: url #{url}"
 
         # Pass url to the new thread so it can use it as a parameter
         threads[found_index] = Thread.new(url) do
@@ -508,7 +508,6 @@ namespace :scrape do
                 threads_available.signal
               end
             end
-
           end
         end
       end
