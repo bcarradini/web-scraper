@@ -490,14 +490,14 @@ namespace :scrape do
           FileUtils.mkdir_p "#{PROJECTS_LOGS_DIR}/#{region}/#{category}"
           FileUtils.mkdir_p "#{PROJECTS_OUTPUT_DIR}/#{region}/#{category}"
 
-          Dir.glob("#{discovery_category_dir}/*").each do |discovery_page_dir|
+          Dir.glob("#{discovery_category_dir}/*").each_with_index do |discovery_page_dir, idx|
             page = discovery_page_dir.match(/page=.*/).to_s.gsub(/page=/,'').to_i
             urls = File.read(discovery_page_dir+'/results.json')
             urls = JSON.parse(urls)['project_url']['value']
 
             # Log progress
-            if (page % 100) == 1
-              puts "P: r #{region}: c #{category}: page #{page}"
+            if (idx % 10) == 1
+              puts "P: r #{region}: c #{category}: idx #{idx}"
             end
 
             # Cycle over individual URLs and queue them up
@@ -516,32 +516,26 @@ namespace :scrape do
       sysexit = true
     end
 
-    # Join on the producer and consumer threads, and on the child threads,
-    # to make sure all work is complete before exiting.
+    # Join on the producer and consumer threads
     producer_thread.join
     begin
       consumer_thread.join
     rescue Exception => e
       puts e
     end
+
+    # Calculate prelim execution time 
+    execution_time = (Time.now - start_time).round(0)
+    puts "\nExecution Time (prelim): #{Time.at(execution_time).utc.strftime("%H:%M:%S")}"
+
+    # Join on the the child threads, to make sure all work is complete before exiting.
     threads.each do |thread|
         thread.join unless thread.nil?
     end
 
-    # Calculate execution time 
+    # Calculate final execution time 
     execution_time = (Time.now - start_time).round(0)
-    puts "\nExecution Time: #{Time.at(execution_time).utc.strftime("%H:%M:%S")}\n"
-
-    # TODO: In post-processing, distinguish "/projects/1469044562/septaer/showcase" links from 
-    #   other content links. These "showcase" links are for prototype galleries
-    # 
-
-    # TODO: Not getting pledge_amount for pledge_title for Pebble 
-
-    # TODO: In post-processing, weed out standard content_links:
-    #   "/help/faq/kickstarter%20basics#Acco",
-    #   "/projects/1469044562/septaer/faqs",
-    #   "/login?then=%2Fprojects%2F1469044562%2Fseptaer"
+    puts "Execution Time (final): #{Time.at(execution_time).utc.strftime("%H:%M:%S")}"
   end
 
 
@@ -562,6 +556,15 @@ namespace :scrape do
             'pledged_amount', 'backers', 'end_date']
 
     projects = Dir.glob("#{PROJECTS_OUTPUT_DIR}/https_www.kickstarter.*")
+
+    # TODO: In post-processing, distinguish "/projects/1469044562/septaer/showcase" links from 
+    #   other content links. These "showcase" links are for prototype galleries
+    # 
+
+    # TODO: In post-processing, weed out standard content_links:
+    #   "/help/faq/kickstarter%20basics#Acco",
+    #   "/projects/1469044562/septaer/faqs",
+    #   "/login?then=%2Fprojects%2F1469044562%2Fseptaer"
 
     # Cycle over abstracts scraped from the abstract links
     Dir.glob("#{PROJECTS_OUTPUT_DIR}/https_www.kickstarter.*") do |project|
