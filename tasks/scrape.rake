@@ -403,8 +403,9 @@ namespace :scrape do
     # This can be adjusted to pause/restart the process. The key is the region 
     # (as a string) and the value for each key is an array of categories that
     # have already been scraped.
-    already_scraped = {'2347564' => ['6', '17', '10', '14', '12', '13', '26', '7', '16']}
-
+    already_scraped = {'2347564' => ['6', '17', '10', '14', '12', '13', '26', '7', '16', '9', '18', '1', '3', '15', '11'],
+                       '2347575' => ['6', '17', '10', '14', '12', '13', '26', ]}
+                                    
     # Create an array to keep track of threads and include MonitorMixin so we 
     # can signal when a thread finishes and schedule a new one.
     thread_count = 24
