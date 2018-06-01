@@ -151,7 +151,7 @@ namespace :scrape do
     DISCOVERY_OUTPUT_DIR = "#{DISCOVERY_DIR}/output"
 
     # Cleanup old directories and (re-)create
-    # FileUtils.rm_rf DISCOVERY_DIR
+    # FileUtils.rm_rf DISCOVERY_DIR # Disable command
     FileUtils.mkdir_p DISCOVERY_LOGS_DIR
     FileUtils.mkdir_p DISCOVERY_OUTPUT_DIR
 
@@ -396,9 +396,14 @@ namespace :scrape do
     PROJECTS_OUTPUT_DIR = "#{PROJECTS_DIR}/output"
 
     # Cleanup old directories and (re-)create
-    FileUtils.rm_rf PROJECTS_DIR
+    # FileUtils.rm_rf PROJECTS_DIR # Disable command
     FileUtils.mkdir_p PROJECTS_LOGS_DIR
     FileUtils.mkdir_p PROJECTS_OUTPUT_DIR
+
+    # This can be adjusted to pause/restart the process. The key is the region 
+    # (as a string) and the value for each key is an array of categories that
+    # have already been scraped.
+    already_scraped = {'2347564' => ['6', '17', '10', '14', '12', '13', '26', '7', '16']}
 
     # Create an array to keep track of threads and include MonitorMixin so we 
     # can signal when a thread finishes and schedule a new one.
@@ -486,6 +491,7 @@ namespace :scrape do
         Dir.glob("#{discovery_region_dir}/*").each do |discovery_category_dir|
           category = discovery_category_dir.gsub(/#{DISCOVERY_OUTPUT_DIR}\/.*\//,'')
           next if (args[:category] && args[:category] != category)
+          next if already_scraped[region] && already_scraped[region].include?(category)
 
           FileUtils.mkdir_p "#{PROJECTS_LOGS_DIR}/#{region}/#{category}"
           FileUtils.mkdir_p "#{PROJECTS_OUTPUT_DIR}/#{region}/#{category}"
