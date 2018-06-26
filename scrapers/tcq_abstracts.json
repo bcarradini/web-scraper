@@ -1,0 +1,18 @@
+{
+  "url": ".*academic.microsoft.*",
+  "headless": true,
+  "elements": {
+    "title": {
+      "selector": "//article[contains(@class,'profile-page')]//h1[contains(@class,'grey-title')]",
+      "attribute": "text"
+    },
+    "author": {
+      "selector": "//article[contains(@class,'profile-page')]//span[@class='paper-author-affiliation']//a",
+      "attribute": "text"
+    },
+    "abstract": {
+      "selector": "//article[contains(@class,'profile-page')]//section[@class='paper-abstract']",
+      "attribute": "text"
+    }
+  }
+}

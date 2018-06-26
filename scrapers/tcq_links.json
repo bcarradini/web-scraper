@@ -1,0 +1,10 @@
+{
+  "url": ".*academic.microsoft.*",
+  "headless": true,
+  "elements": {
+    "abstract_link": {
+      "selector": "//section[@class='paper-title']//a",
+      "attribute": "href"
+    }
+  }
+}
