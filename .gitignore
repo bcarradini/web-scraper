@@ -13,6 +13,7 @@ sftp-config.json
 /logs
 
 # Ignore output
-/output/*/*
+/output/*/*/*
+/output/split/*
 /ks/discovery/*
 /ks/projects/*
