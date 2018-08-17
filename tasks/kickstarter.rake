@@ -4,7 +4,7 @@ require 'httparty'
 require 'timeout'
 require 'fileutils'
 
-namespace :scrape do
+namespace :kickstarter do
 
   def timestamp
     Time.now.strftime("%Y-%m-%d-%H:%M-UTC")
@@ -274,6 +274,9 @@ namespace :scrape do
 
   desc 'Kickstarter Projects'
   task :ks_projects, [:region, :category] do |task, args|
+    # Disable command
+    abort("Script executed June 2018. Don't re-run! Don't destroy the data!")
+
     start_time = Time.now
 
     # This script expects 'ks/logs/' and 'ks/output/' to already exist
@@ -478,62 +481,125 @@ namespace :scrape do
   task :ks_process do
     start_time = Time.now
 
-    PROJECTS_LOGS_DIR = 'ks/projects/logs'
-    PROJECTS_OUTPUT_DIR = 'ks/projects/output'
-    KS_DIR = 'ks/'
+    PROJECTS_DIR = 'ks/projects'
+    PROJECTS_LOGS_DIR = "#{PROJECTS_DIR}/logs"
+    PROJECTS_OUTPUT_DIR = "#{PROJECTS_DIR}/output"
 
     # Prepare CSV file for final output 
-    final_csv = File.join(OUTPUT_DIR, "final_output_#{timestamp}.csv")
+    final_csv = File.join(PROJECTS_DIR, "final_output_#{datestamp}.csv")
     csv = CSV.open(final_csv, "wb")
-    csv << ['URL', 'scraped', 'state', 'title', 'sub_title', 'creator', 'first_time_creator', 'project_image', 'project_video',
-            'content_images', 'content_videos', 'content_links', 'content_headers', 'content_full_description',
-            'content_risks', 'pledges_amounts', 'pledge_titles', 'pledge_descriptions', 'pledge_extras', 'goal_amount',
-            'pledged_amount', 'backers', 'end_date']
+    csv << ['URL', 'scraped', 'title', 'sub_title', 'status', 'goal_amount', 'pledged_amount', 'backers', 'end_date', 
+            'creator', 'first_time_creator', 'project_image', 'project_video', 'project_galleries', 'content_images_nongif', 'content_images_gif', 
+            'content_videos', 'content_links', 'content_headers', 'content_full_description', 'content_risks', 
+            'pledge_amount_0', 'pledge_amount_1', 'pledge_amount_2', 'pledge_amount_3', 'pledge_amount_4', 'pledge_amount_5', 'pledge_amount_6', 'pledge_amount_7', 'pledge_amount_8', 'pledge_amount_9', 
+            'pledge_amount_10', 'pledge_amount_11', 'pledge_amount_12', 'pledge_amount_13', 'pledge_amount_14', 'pledge_amount_15', 'pledge_amount_16', 'pledge_amount_17', 'pledge_amount_18', 'pledge_amount_19', 
+            'pledge_amount_20', 'pledge_amount_21', 'pledge_amount_22', 'pledge_amount_23', 'pledge_amount_24', 'pledge_amount_25', 'pledge_amount_26', 'pledge_amount_27', 'pledge_amount_28', 'pledge_amount_29', 
+            'pledge_amount_30', 'pledge_amount_31', 'pledge_amount_32', 'pledge_amount_33', 'pledge_amount_34', 'pledge_amount_35', 'pledge_amount_36', 'pledge_amount_37', 'pledge_amount_38', 'pledge_amount_39', 
+            'pledge_amount_40', 'pledge_amount_41', 'pledge_amount_42', 'pledge_amount_43', 'pledge_amount_44', 'pledge_amount_45', 'pledge_amount_46', 'pledge_amount_47', 'pledge_amount_48', 'pledge_amount_49', 
+            'pledge_title_0', 'pledge_title_1', 'pledge_title_2', 'pledge_title_3', 'pledge_title_4', 'pledge_title_5', 'pledge_title_6', 'pledge_title_7', 'pledge_title_8', 'pledge_title_9', 
+            'pledge_title_10', 'pledge_title_11', 'pledge_title_12', 'pledge_title_13', 'pledge_title_14', 'pledge_title_15', 'pledge_title_16', 'pledge_title_17', 'pledge_title_18', 'pledge_title_19', 
+            'pledge_title_20', 'pledge_title_21', 'pledge_title_22', 'pledge_title_23', 'pledge_title_24', 'pledge_title_25', 'pledge_title_26', 'pledge_title_27', 'pledge_title_28', 'pledge_title_29', 
+            'pledge_title_30', 'pledge_title_31', 'pledge_title_32', 'pledge_title_33', 'pledge_title_34', 'pledge_title_35', 'pledge_title_36', 'pledge_title_37', 'pledge_title_38', 'pledge_title_39', 
+            'pledge_title_40', 'pledge_title_41', 'pledge_title_42', 'pledge_title_43', 'pledge_title_44', 'pledge_title_45', 'pledge_title_46', 'pledge_title_47', 'pledge_title_48', 'pledge_title_49', 
+            'pledge_description_0', 'pledge_description_1', 'pledge_description_2', 'pledge_description_3', 'pledge_description_4', 'pledge_description_5', 'pledge_description_6', 'pledge_description_7', 'pledge_description_8', 'pledge_description_9', 
+            'pledge_description_10', 'pledge_description_11', 'pledge_description_12', 'pledge_description_13', 'pledge_description_14', 'pledge_description_15', 'pledge_description_16', 'pledge_description_17', 'pledge_description_18', 'pledge_description_19', 
+            'pledge_description_20', 'pledge_description_21', 'pledge_description_22', 'pledge_description_23', 'pledge_description_24', 'pledge_description_25', 'pledge_description_26', 'pledge_description_27', 'pledge_description_28', 'pledge_description_29', 
+            'pledge_description_30', 'pledge_description_31', 'pledge_description_32', 'pledge_description_33', 'pledge_description_34', 'pledge_description_35', 'pledge_description_36', 'pledge_description_37', 'pledge_description_38', 'pledge_description_39', 
+            'pledge_description_40', 'pledge_description_41', 'pledge_description_42', 'pledge_description_43', 'pledge_description_44', 'pledge_description_45', 'pledge_description_46', 'pledge_description_47', 'pledge_description_48', 'pledge_description_49', 
+            'pledge_extras_0', 'pledge_extras_1', 'pledge_extras_2', 'pledge_extras_3', 'pledge_extras_4', 'pledge_extras_5', 'pledge_extras_6', 'pledge_extras_7', 'pledge_extras_8', 'pledge_extras_9', 
+            'pledge_extras_10', 'pledge_extras_11', 'pledge_extras_12', 'pledge_extras_13', 'pledge_extras_14', 'pledge_extras_15', 'pledge_extras_16', 'pledge_extras_17', 'pledge_extras_18', 'pledge_extras_19', 
+            'pledge_extras_20', 'pledge_extras_21', 'pledge_extras_22', 'pledge_extras_23', 'pledge_extras_24', 'pledge_extras_25', 'pledge_extras_26', 'pledge_extras_27', 'pledge_extras_28', 'pledge_extras_29', 
+            'pledge_extras_30', 'pledge_extras_31', 'pledge_extras_32', 'pledge_extras_33', 'pledge_extras_34', 'pledge_extras_35', 'pledge_extras_36', 'pledge_extras_37', 'pledge_extras_38', 'pledge_extras_39', 
+            'pledge_extras_40', 'pledge_extras_41', 'pledge_extras_42', 'pledge_extras_43', 'pledge_extras_44', 'pledge_extras_45', 'pledge_extras_46', 'pledge_extras_47', 'pledge_extras_48', 'pledge_extras_49']
 
-    projects = Dir.glob("#{PROJECTS_OUTPUT_DIR}/https_www.kickstarter.*")
+    projects = Dir.glob("#{PROJECTS_OUTPUT_DIR}/")
 
-    # TODO: In post-processing, distinguish "/projects/1469044562/septaer/showcase" links from 
-    #   other content links. These "showcase" links are for prototype galleries
-    # 
+    # Cycle over results scraped from Kickstarter Project pages
+    Dir.glob("#{PROJECTS_OUTPUT_DIR}/*").each do |region| 
+      puts "Region: #{region}"
 
-    # TODO: In post-processing, weed out standard content_links:
-    #   "/help/faq/kickstarter%20basics#Acco",
-    #   "/projects/1469044562/septaer/faqs",
-    #   "/login?then=%2Fprojects%2F1469044562%2Fseptaer"
+      Dir.glob("#{region}/*").each do |category|
+        Dir.glob("#{category}/*").each do |project|
+          file = File.read project+'/results.json'
+          json = JSON.parse(file)
 
-    # Cycle over abstracts scraped from the abstract links
-    Dir.glob("#{PROJECTS_OUTPUT_DIR}/https_www.kickstarter.*") do |project|
-      puts project
-      file = File.read project+'/results.json'
-      json = JSON.parse(file)
+          # Derive URL from category directory
+          url = project[/http.*/].gsub(/https_/,'https://').gsub(/_/, '/')
 
-      # Derive URL from project directory
-      url = project[/http.*/].gsub(/http_/,'http://').gsub(/_/, '/')
+          # Derive scraped datestamp from associated logfile (YYYY-MM-DD)
+          log = Dir.glob("#{project.gsub('output','logs')}*")[0]
+          scraped = log.match(/\d\d\d\d-\d\d-\d\d-UTC/).to_s[0..9]
 
-      # Derive scraped datestamp from associated logfile (YYYY-MM-DD)
-      log = Dir.glob("#{project.gsub('output','logs')}*")[0]
-      scraped = log.match(/\d\d\d\d-\d\d-\d\d-UTC/).to_s[0..9]
+          # Retrieve project data from results file
+          title = retrieve_and_strip(json['title'])
+          sub_title = retrieve_and_strip(json['sub_title'])
+          status = json['pledged_amount_funded']['value'].empty? ? (json['end_date']['value'].empty? ? 'failed' : 'active') : ('succeeded')
+          goal_amount = retrieve_and_strip_dollars(json['goal_amount'])
+          pledged_amount = retrieve_and_strip_dollars(json['pledged_amount_unfunded']) || retrieve_and_strip_dollars(json['pledged_amount_funded'])
+          backers = retrieve_and_strip(json['backers_unfunded']) || retrieve_and_strip(json['backers_funded'])&.gsub(' backers','')
+          end_date = retrieve_and_strip(json['end_date'])
 
-      # Retrieve basic project data from results file
-      if json['pledged_amount_funded']['value'].empty?
-        if json['end_date']['value'].empty?
-          state = 'failed'
-        else
-          state = 'active'
+          # Creator info
+          creator = retrieve_and_strip(json['creator'])
+          first_time_creator = json['first_time_creator']['value'].empty? ? 'no' : 'yes'
+
+          # Project "front page"
+          project_image = json['project_image']['value'].count
+          project_video = json['project_video']['value'].count
+          project_galleries = json['content_links']['value'].map {|l| l.match(/\A\/projects.*showcase/) ? l : nil }.compact.count
+
+          # Content
+          content_images_gif = json['content_images']['value'].map {|i| i.match('.gif') ? i : nil }.compact.count
+          content_images_nongif = json['content_images']['value'].count - content_images_gif
+          content_videos = json['content_videos']['value'].count
+          content_links = json['content_links']['value'].map do |l|
+            # Begins with "/discover", "/projects", "/login", "/help"
+            (l.match(/\A\/discover/) || l.match(/\A\/projects/) || l.match(/\A\/login/) || l.match(/\A\/help/)) ? nil : l
+          end.compact.count
+          content_headers = json['content_headers']['value'].count
+          content_full_description = retrieve_and_strip(json['content_full_description'])
+          content_risks = retrieve_and_strip(json['content_risks'])&.gsub(/\A\n\nRisks and challenges\n/,'')&.gsub("\n",' ')
+
+          # Assemble preliminary row for CSV file
+          row = [url, scraped, title, sub_title, status, goal_amount, pledged_amount, backers, end_date, creator, 
+                 first_time_creator, project_image, project_video, project_galleries, content_images_nongif, 
+                 content_images_gif, content_videos, content_links, content_headers, content_full_description, 
+                 content_risks]
+
+          # Assemble final row by processing pledge data. Fill out all expected columns in row, even if
+          # data is blank. Use "&." for string cleanup so the app won't raise an exception for nil items.
+          for i in 0..49
+            row.push strip_dollars(json['pledge_amount']['value'][i])
+          end
+          for i in 0..49
+            row.push json['pledge_title']['value'][i]&.strip
+          end
+          for i in 0..49
+            row.push json['pledge_description']['value'][i]&.gsub("\n\n\nLess\n\n",'')&.gsub("\n",' ')&.strip
+          end
+          for i in 0..49
+            row.push json['pledge_extra_info']['value'][i]&.strip
+          end
+          
+          # Add row to CSV file
+          csv << row
         end
-      else
-        state = 'succeeded'
+        # TODO: Remove after testing
+        break
       end
-
-      # TODO: pledge_title won't always be available
-
-      puts "URL: #{url}"
-      puts "scraped: #{scraped}"
-      puts "state: #{state}"
-
-      csv << [url, scraped, state]
-      break
     end
+  end
+
+  def strip_dollars(amount)
+    amount&.gsub(/.*\$/,'')&.gsub(',','')&.strip
+  end
+
+  def retrieve_and_strip(item_with_value_list)
+    item_with_value_list['value'].map {|v| (!v || v.strip.empty?) ? nil : v.strip }.compact[0]
+  end
+
+  def retrieve_and_strip_dollars(item_with_value_list)
+    strip_dollars(retrieve_and_strip(item_with_value_list))
   end
 
 end
